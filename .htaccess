@@ -12,7 +12,7 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 RewriteRule ^$ index.php [L]
 
 # Excluir imágenes y otros archivos estáticos de las reglas de reescritura
-RewriteCond %{REQUEST_URI} \.(gif|jpg|jpeg|png|svg|webp|ico|css|js|woff|woff2|ttf|eot)$ [NC]
+RewriteCond %{REQUEST_URI} \.(gif|jpg|jpeg|png|svg|webp|ico|css|js|woff|woff2|ttf|eot|json)$ [NC]
 RewriteRule .* - [L]
 
 # Reglas para servicios
@@ -57,23 +57,19 @@ ErrorDocument 404 /404-pagina-no-encontrada.php
     SetEnvIf Origin "^https?://(www\.)?(inmedia\.pe|kamas\.pe|dormihogar\.pe|homesleep\.pe)$" ORIGIN_ALLOWED=$0
     SetEnvIf Origin "^https?://(localhost|127\.0\.0\.1)(:\d+)?$" ORIGIN_ALLOWED=$0
     
-    # Establecer headers CORS para solicitudes permitidas
-    <FilesMatch "\.(json|php)$">
-        Header set Access-Control-Allow-Origin %{ORIGIN_ALLOWED}e env=ORIGIN_ALLOWED
-        Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
-        Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
-        Header set Access-Control-Allow-Credentials "true"
-        Header set Access-Control-Max-Age "86400"
-    </FilesMatch>
-
-    # Si no hay origen permitido, permitir solo desde el mismo dominio
-    Header set Access-Control-Allow-Origin "https://inmedia.pe"
+    # Establecer headers CORS para TODOS los archivos
+    Header set Access-Control-Allow-Origin %{ORIGIN_ALLOWED}e env=ORIGIN_ALLOWED
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header set Access-Control-Allow-Credentials "true"
+    Header set Access-Control-Max-Age "86400"
 </IfModule>
 
 # =========================================================================
-# REGLA ESPECÍFICA PARA ARCHIVOS JSON - PERMITIR TODOS LOS ORÍGENES
+# PERMITIR ACCESO DIRECTO A ARCHIVOS JSON Y PHP
 # =========================================================================
-<FilesMatch "\.(json)$">
+<FilesMatch "\.(json|php)$">
+    # Permitir todos los orígenes para JSON
     Header set Access-Control-Allow-Origin "*"
     Header set Access-Control-Allow-Methods "GET, OPTIONS"
     Header set Access-Control-Allow-Headers "Content-Type"
