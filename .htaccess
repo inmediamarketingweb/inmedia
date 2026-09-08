@@ -46,18 +46,43 @@ RewriteRule ^solicitar-cotizacion$ solicitar-cotizacion.php [L]
 ErrorDocument 404 /404-pagina-no-encontrada.php
 
 # =========================================================================
-# CONFIGURACIÓN DE CORS DINÁMICO (Soporta Producción y Localhost)
+# CONFIGURACIÓN DE CORS MEJORADA
 # =========================================================================
 <IfModule mod_headers.c>
-    # Permite inmedia.pe, kamas.pe, dormihogar.pe, homesleep.pe y localhost (puertos 3000, 5173, etc.)
-    SetEnvIf Origin "^https?://(www\.)?(inmedia\.pe|kamas\.pe|dormihogar\.pe|homesleep\.pe)$" AccessControlAllowOrigin=$0
-    SetEnvIf Origin "^https?://(localhost|127\.0\.0\.1)(:\d+)?$" AccessControlAllowOrigin=$0
+    # Manejar solicitudes OPTIONS (preflight)
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ $1 [R=200,L]
+
+    # Configurar orígenes permitidos
+    SetEnvIf Origin "^https?://(www\.)?(inmedia\.pe|kamas\.pe|dormihogar\.pe|homesleep\.pe)$" ORIGIN_ALLOWED=$0
+    SetEnvIf Origin "^https?://(localhost|127\.0\.0\.1)(:\d+)?$" ORIGIN_ALLOWED=$0
     
-    Header set Access-Control-Allow-Origin %{AccessControlAllowOrigin}e env=AccessControlAllowOrigin
-    Header set Access-Control-Allow-Methods "GET, OPTIONS"
-    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
-    Header set Access-Control-Allow-Credentials "true"
+    # Establecer headers CORS para solicitudes permitidas
+    <FilesMatch "\.(json|php)$">
+        Header set Access-Control-Allow-Origin %{ORIGIN_ALLOWED}e env=ORIGIN_ALLOWED
+        Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
+        Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+        Header set Access-Control-Allow-Credentials "true"
+        Header set Access-Control-Max-Age "86400"
+    </FilesMatch>
+
+    # Si no hay origen permitido, permitir solo desde el mismo dominio
+    Header set Access-Control-Allow-Origin "https://inmedia.pe"
 </IfModule>
+
+# =========================================================================
+# REGLA ESPECÍFICA PARA ARCHIVOS JSON - PERMITIR TODOS LOS ORÍGENES
+# =========================================================================
+<FilesMatch "\.(json)$">
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type"
+    
+    # Cache control para JSON
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+</FilesMatch>
 
 # Asegurar que las solicitudes a ://fontawesome.com no sean bloqueadas
 RewriteCond %{HTTP_REFERER} ^https?://kit\.fontawesome\.com [NC]
@@ -77,21 +102,6 @@ RewriteRule .* - [L]
 <IfModule mod_brotli.c>
     AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/xml text/css text/javascript application/javascript application/json
 </IfModule>
-
-# =========================================================================
-# CONTROL DE CACHÉ ACTUALIZADO PARA EVITAR RETRASOS EN JSON
-# =========================================================================
-# Forzar a que los archivos JSON nunca se guarden en caché (así los cambios son instantáneos)
-<FilesMatch "\.(json)$">
-    Header set Cache-Control "no-cache, no-store, must-revalidate"
-    Header set Pragma "no-cache"
-    Header set Expires 0
-</FilesMatch>
-
-# Asegurar que los archivos de fuentes no sean solicitados innecesariamente
-<FilesMatch "\.(woff|woff2|ttf|eot)$">
-    Header set Cache-Control "max-age=31536000, public"
-</FilesMatch>
 
 # php -- BEGIN cPanel-generated handler, do not edit
 # Set the “ea-php81” package as the default “PHP” programming language.
