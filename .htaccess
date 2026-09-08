@@ -45,15 +45,21 @@ RewriteRule ^solicitar-cotizacion$ solicitar-cotizacion.php [L]
 # Página de error 404 personalizada
 ErrorDocument 404 /404-pagina-no-encontrada.php
 
-# Habilitar CORS y permitir acceso desde un dominio específico
+# =========================================================================
+# CONFIGURACIÓN DE CORS DINÁMICO (Soporta Producción y Localhost)
+# =========================================================================
 <IfModule mod_headers.c>
-    Header set Access-Control-Allow-Origin "https://inmedia.pe"
-    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    # Permite inmedia.pe, kamas.pe, dormihogar.pe, homesleep.pe y localhost (puertos 3000, 5173, etc.)
+    SetEnvIf Origin "^https?://(www\.)?(inmedia\.pe|kamas\.pe|dormihogar\.pe|homesleep\.pe)$" AccessControlAllowOrigin=$0
+    SetEnvIf Origin "^https?://(localhost|127\.0\.0\.1)(:\d+)?$" AccessControlAllowOrigin=$0
+    
+    Header set Access-Control-Allow-Origin %{AccessControlAllowOrigin}e env=AccessControlAllowOrigin
+    Header set Access-Control-Allow-Methods "GET, OPTIONS"
     Header set Access-Control-Allow-Headers "Content-Type, Authorization"
     Header set Access-Control-Allow-Credentials "true"
 </IfModule>
 
-# Asegurar que las solicitudes a kit.fontawesome.com no sean bloqueadas
+# Asegurar que las solicitudes a ://fontawesome.com no sean bloqueadas
 RewriteCond %{HTTP_REFERER} ^https?://kit\.fontawesome\.com [NC]
 RewriteRule .* - [L]
 
@@ -72,9 +78,14 @@ RewriteRule .* - [L]
     AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/xml text/css text/javascript application/javascript application/json
 </IfModule>
 
-# Configuración de caché para archivos JSON
+# =========================================================================
+# CONTROL DE CACHÉ ACTUALIZADO PARA EVITAR RETRASOS EN JSON
+# =========================================================================
+# Forzar a que los archivos JSON nunca se guarden en caché (así los cambios son instantáneos)
 <FilesMatch "\.(json)$">
-    Header set Cache-Control "max-age=604800, public"
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
 </FilesMatch>
 
 # Asegurar que los archivos de fuentes no sean solicitados innecesariamente
